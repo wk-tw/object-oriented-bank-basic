@@ -1,0 +1,1 @@
+package modelenum class TransactionType {    WITHDRAWAL,    DEPOSIT,}
