@@ -62,7 +62,7 @@ internal class TransactionServiceTest {
         Mockito.`when`(transactionClient.save(eq(createAfterWithdrawalTransaction())))
             .thenReturn(createAfterWithdrawalTransaction())
 
-        assertThat(transactionService.withdrawal(createWithdrawalTransaction()))
+        assertThat(transactionService.withdraw(createWithdrawalTransaction()))
             .isEqualToComparingFieldByField(createAfterWithdrawalTransaction())
     }
 }

@@ -10,7 +10,7 @@ import java.math.BigDecimal
 
 /**
  * US 1: In order to save money, as a bank client, I want to make a deposit in my account
- * @see [withdrawal]
+ * @see [withdraw]
  * US 2: In order to retrieve some or all of my savings, as a bank client, I want to make a withdrawal from my account
  * @see [deposit]
  * US 3: In order to check my operations, as a bank client, I want to see the history (operation, date, amount, balance) of my operations
@@ -20,7 +20,7 @@ class TransactionService(
     private val balanceService: BalanceService,
     private val transactionClient: TransactionClient
 ) {
-    fun withdrawal(transaction: Transaction): Transaction {
+    fun withdraw(transaction: Transaction): Transaction {
         checkWithdrawalTransaction(transaction)
         val actualBalance = balanceService.getBalance(transaction.accountId)
         return transaction
