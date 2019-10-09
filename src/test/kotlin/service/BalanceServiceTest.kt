@@ -1,36 +1,28 @@
 package service
 
 import client.TransactionClient
+import com.nhaarman.mockitokotlin2.eq
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.ValueSource
+import org.mockito.InjectMocks
+import org.mockito.Mock
 import org.mockito.Mockito
-import utils.createFR3217569000403186528461V35
-import utils.createFR4930003000302945844589B40
-import utils.createFR6017569000704817168116U94
+import org.mockito.junit.jupiter.MockitoExtension
+import utils.getTransactionsById
 import java.math.BigDecimal
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@ExtendWith(MockitoExtension::class)
 internal class BalanceServiceTest {
 
+    @Mock
     private lateinit var transactionClient: TransactionClient
-    private lateinit var balanceService: BalanceService
 
-    @BeforeAll
-    fun setup() {
-        this.transactionClient = Mockito.mock(TransactionClient::class.java)
-        this.balanceService = BalanceService(transactionClient)
-        Mockito.`when`(transactionClient.findById("FR3217569000403186528461V35"))
-            .thenReturn(createFR3217569000403186528461V35())
-        Mockito.`when`(transactionClient.findById("FR6017569000704817168116U94"))
-            .thenReturn(createFR6017569000704817168116U94())
-        Mockito.`when`(transactionClient.findById("FR4930003000302945844589B40"))
-            .thenReturn(createFR4930003000302945844589B40())
-    }
+    @InjectMocks
+    private lateinit var balanceService: BalanceService
 
     @ParameterizedTest
     @CsvSource(
@@ -38,12 +30,18 @@ internal class BalanceServiceTest {
         "FR6017569000704817168116U94, 0"
     )
     fun `getBalance, should succeed`(accountId: String, amount: BigDecimal) {
+        Mockito.`when`(transactionClient.findById(eq(accountId)))
+            .thenReturn(getTransactionsById(accountId))
+
         assertThat(balanceService.getBalance(accountId)).isEqualTo(amount)
     }
 
     @ParameterizedTest
     @ValueSource(strings = ["FR4930003000302945844589B40"])
     fun `getBalance, empty list,should throw`(accountId: String) {
+        Mockito.`when`(transactionClient.findById(eq(accountId)))
+            .thenReturn(getTransactionsById(accountId))
+
         assertThatThrownBy { balanceService.getBalance(accountId) }
             .isExactlyInstanceOf(IllegalStateException::class.java)
             .hasMessage("Unable to retrieve balance")

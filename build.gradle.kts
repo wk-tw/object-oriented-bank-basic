@@ -12,7 +12,8 @@ val assertJVersion = "3.13.2"
 val jacksonVersion = "2.10.0"
 val slf4jVersion = "1.7.28"
 val javaxMoneyVersion = "1.3"
-val mockitoVersion = "1.10.19"
+val mockitoVersion = "3.1.0"
+val mockitoKotlinVersion = "2.2.0"
 
 repositories {
     mavenCentral()
@@ -25,7 +26,8 @@ dependencies {
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion")
     implementation("org.slf4j:slf4j-api:$slf4jVersion")
     implementation("org.javamoney:moneta:$javaxMoneyVersion")
-    testImplementation("org.mockito:mockito-all:$mockitoVersion")
+    testImplementation("org.mockito:mockito-junit-jupiter:$mockitoVersion")
+    testImplementation("com.nhaarman.mockitokotlin2:mockito-kotlin:$mockitoKotlinVersion")
     testImplementation("org.assertj:assertj-core:$assertJVersion")
     testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
 }

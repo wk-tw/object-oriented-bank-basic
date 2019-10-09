@@ -1,38 +1,33 @@
 package service
 
 import client.TransactionClient
+import com.nhaarman.mockitokotlin2.eq
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
+import org.mockito.InjectMocks
+import org.mockito.Mock
 import org.mockito.Mockito
-import org.mockito.Mockito.mock
+import org.mockito.junit.jupiter.MockitoExtension
 import utils.*
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@ExtendWith(MockitoExtension::class)
 internal class TransactionServiceTest {
+
+    @Mock
     private lateinit var transactionClient: TransactionClient
+
+    @InjectMocks
     private lateinit var balanceService: BalanceService
+
     private lateinit var transactionService: TransactionService
 
-
-    @BeforeAll
+    @BeforeEach
     fun setup() {
-        this.transactionClient = mock(TransactionClient::class.java)
-        this.balanceService = BalanceService(transactionClient)
-        this.transactionService = TransactionService(balanceService, transactionClient)
-        Mockito.`when`(transactionClient.findById("FR3217569000403186528461V35"))
-            .thenReturn(createFR3217569000403186528461V35())
-        Mockito.`when`(transactionClient.findById("FR6017569000704817168116U94"))
-            .thenReturn(createFR6017569000704817168116U94())
-        Mockito.`when`(transactionClient.findById("FR4930003000302945844589B40"))
-            .thenReturn(createFR4930003000302945844589B40())
-        Mockito.`when`(transactionClient.save(createAfterDepositTransaction()))
-            .thenReturn(createAfterDepositTransaction())
-        Mockito.`when`(transactionClient.save(createAfterWithdrawalTransaction()))
-            .thenReturn(createAfterWithdrawalTransaction())
+        transactionService = TransactionService(balanceService, transactionClient)
     }
 
     @ParameterizedTest
@@ -42,17 +37,31 @@ internal class TransactionServiceTest {
         "FR4930003000302945844589B40, 0"
     )
     fun `checkOperations, should succeed`(accountId: String, size: Int) {
+        Mockito.`when`(transactionClient.findById(eq(accountId)))
+            .thenReturn(getTransactionsById(accountId))
         assertThat(transactionService.checkOperations(accountId)).hasSize(size)
     }
 
     @Test
     fun `deposit, should succeed`() {
+        val accountId = "FR3217569000403186528461V35"
+        Mockito.`when`(transactionClient.findById(eq(accountId)))
+            .thenReturn(getTransactionsById(accountId))
+        Mockito.`when`(transactionClient.save(eq(createAfterDepositTransaction())))
+            .thenReturn(createAfterDepositTransaction())
+
         assertThat(transactionService.deposit(createDepositTransaction()))
             .isEqualToComparingFieldByField(createAfterDepositTransaction())
     }
 
     @Test
     fun withdrawal() {
+        val accountId = "FR3217569000403186528461V35"
+        Mockito.`when`(transactionClient.findById(eq(accountId)))
+            .thenReturn(getTransactionsById(accountId))
+        Mockito.`when`(transactionClient.save(eq(createAfterWithdrawalTransaction())))
+            .thenReturn(createAfterWithdrawalTransaction())
+
         assertThat(transactionService.withdrawal(createWithdrawalTransaction()))
             .isEqualToComparingFieldByField(createAfterWithdrawalTransaction())
     }

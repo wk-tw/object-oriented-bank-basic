@@ -7,7 +7,15 @@ import model.TransactionType.WITHDRAWAL
 import java.math.BigDecimal
 import java.time.LocalDate.now
 
-fun createFR3217569000403186528461V35() = listOf<Transaction>(
+fun getTransactionsById(accountId: String): List<Transaction> =
+    when (accountId) {
+        "FR3217569000403186528461V35" -> createFR3217569000403186528461V35()
+        "FR6017569000704817168116U94" -> createFR6017569000704817168116U94()
+        "FR4930003000302945844589B40" -> createFR4930003000302945844589B40()
+        else -> throw IllegalStateException("Unable to find transactions with id $accountId")
+    }
+
+private fun createFR3217569000403186528461V35() = listOf<Transaction>(
     Transaction(
         accountId = "FR3217569000403186528461V35",
         money = BigDecimal(2000),
@@ -86,7 +94,7 @@ fun createAfterWithdrawalTransaction() = Transaction(
     requestedExecutionDate = now()
 )
 
-fun createFR6017569000704817168116U94() = listOf<Transaction>(
+private fun createFR6017569000704817168116U94() = listOf<Transaction>(
     Transaction(
         accountId = "FR6017569000704817168116U94",
         money = BigDecimal(2000),
@@ -125,4 +133,4 @@ fun createFR6017569000704817168116U94() = listOf<Transaction>(
     )
 )
 
-fun createFR4930003000302945844589B40() = emptyList<Transaction>()
+private fun createFR4930003000302945844589B40() = emptyList<Transaction>()
