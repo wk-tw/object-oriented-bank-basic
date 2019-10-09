@@ -21,9 +21,7 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion")
     implementation("org.slf4j:slf4j-api:$slf4jVersion")
     implementation("org.javamoney:moneta:$javaxMoneyVersion")
     testImplementation("org.mockito:mockito-junit-jupiter:$mockitoVersion")
