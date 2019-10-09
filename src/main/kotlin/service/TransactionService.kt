@@ -4,6 +4,8 @@ import client.TransactionClient
 import model.Transaction
 import model.TransactionStatus.REJECTED
 import model.TransactionStatus.SUCCESS
+import validator.checkDepositTransaction
+import validator.checkWithdrawalTransaction
 import java.math.BigDecimal
 
 /**
