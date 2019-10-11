@@ -1,1 +1,1 @@
-package modelimport java.math.BigDecimalimport java.time.LocalDatedata class Transaction @JvmOverloads constructor(    val accountId: String,    val money: BigDecimal,    val balance: BigDecimal? = null,    val requestedExecutionDate: LocalDate)
+package modelimport java.math.BigDecimalimport java.time.Instantdata class Transaction(    val accountId: String,    val amount: BigDecimal,    val balance: BigDecimal,    val date: Instant) {    init {        amount.setScale(2)        balance.setScale(2)    }}

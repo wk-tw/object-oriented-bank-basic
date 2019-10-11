@@ -1,5 +1,6 @@
 package validator
 
+import exception.BadRequestedAmountException
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.params.ParameterizedTest
@@ -32,7 +33,7 @@ internal class TransactionValidatorKtTest {
     fun `checkWithdrawalTransaction, invalid data,should throw`(double: Double) {
         val amount = BigDecimal.valueOf(double)
         Assertions.assertThatThrownBy { checkWithdrawalTransaction(amount) }
-            .isExactlyInstanceOf(IllegalStateException::class.java)
+            .isExactlyInstanceOf(BadRequestedAmountException::class.java)
     }
 
     @ParameterizedTest
@@ -59,6 +60,6 @@ internal class TransactionValidatorKtTest {
     fun `checkDepositTransaction, invalid data,should throw`(double: Double) {
         val amount = BigDecimal.valueOf(double)
         Assertions.assertThatThrownBy { checkDepositTransaction(amount) }
-            .isExactlyInstanceOf(IllegalStateException::class.java)
+            .isExactlyInstanceOf(BadRequestedAmountException::class.java)
     }
 }

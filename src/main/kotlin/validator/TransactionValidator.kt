@@ -1,11 +1,12 @@
 package validator
 
+import exception.BadRequestedAmountException
 import java.math.BigDecimal
 
 fun checkWithdrawalTransaction(amount: BigDecimal) {
-    check(amount < BigDecimal.ZERO) { "Amount $amount must be negative." }
+    if (amount >= BigDecimal.ZERO) throw BadRequestedAmountException("Amount $amount must be strictly negative.")
 }
 
 fun checkDepositTransaction(amount: BigDecimal) {
-    check(amount > BigDecimal.ZERO) { "Amount $amount must not be negative." }
+    if (amount <= BigDecimal.ZERO) throw BadRequestedAmountException("Amount $amount must be strictly positive.")
 }
