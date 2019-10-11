@@ -2,7 +2,9 @@ package service
 
 import client.TransactionClient
 import com.nhaarman.mockitokotlin2.eq
+import exception.NotEnoughFondsException
 import model.Transaction
+import org.assertj.core.api.Assertions
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.extension.ExtendWith
@@ -83,5 +85,19 @@ internal class TransactionServiceTest {
         assertThat(response.money).isEqualTo(requestedAmount)
         assertThat(response.balance).isEqualTo(expectedBalance)
         assertThat(response.requestedExecutionDate).isEqualTo(now())
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "FR3217569000403186528461V35, -50000",
+        "FR3217569000403186528461V35, -1000",
+        "FR3217569000403186528461V35, -25630"
+    )
+    fun `withdrawal, should fail`(id: String, requestedAmount: BigDecimal) {
+        Mockito.`when`(transactionClient.findById(eq(id)))
+            .thenReturn(getTransactionsById(id))
+        Assertions.assertThatThrownBy { transactionService.withdraw(id, requestedAmount) }
+            .isExactlyInstanceOf(NotEnoughFondsException::class.java)
+            .hasMessage("Not enough fonds.")
     }
 }
