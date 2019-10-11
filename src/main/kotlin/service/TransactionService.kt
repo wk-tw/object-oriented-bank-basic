@@ -1,12 +1,12 @@
 package service
 
 import client.TransactionClient
+import exception.NotEnoughFondsException
 import model.Transaction
-import model.TransactionStatus.REJECTED
-import model.TransactionStatus.SUCCESS
 import validator.checkDepositTransaction
 import validator.checkWithdrawalTransaction
 import java.math.BigDecimal
+import java.time.LocalDate.now
 
 /**
  * US 1: In order to save money, as a bank client, I want to make a deposit in my account
@@ -20,30 +20,28 @@ class TransactionService(
     private val balanceService: BalanceService,
     private val transactionClient: TransactionClient
 ) {
-    fun withdraw(transaction: Transaction): Transaction {
-        checkWithdrawalTransaction(transaction)
-        val actualBalance = balanceService.getBalance(transaction.accountId)
-        return transaction
-            .takeIf { isEnoughFonds(it.money, actualBalance) }
+
+    fun withdraw(accountId: String, amount: BigDecimal): Transaction {
+        checkWithdrawalTransaction(amount)
+        val actualBalance = balanceService.getBalance(accountId)
+        return amount
+            .takeIf { isEnoughFonds(it, actualBalance) }
             ?.let {
-                val newBalance = actualBalance.plus(it.money)
-                val newTransaction = it.copy(balance = newBalance, transactionStatus = SUCCESS)
+                val newBalance = actualBalance.plus(it)
+                val newTransaction = Transaction(accountId, amount, newBalance, now())
                 transactionClient.save(newTransaction)
             }
-            ?: transaction.apply { this.transactionStatus = REJECTED }
+            ?: throw NotEnoughFondsException("Not enough fonds.")
     }
-
 
     private fun isEnoughFonds(requested: BigDecimal, actual: BigDecimal) = requested.abs() <= actual
 
-
-    fun deposit(transaction: Transaction): Transaction {
-        checkDepositTransaction(transaction)
-        val newBalance = balanceService.getBalance(transaction.accountId).plus(transaction.money)
-        val newTransaction = transaction.copy(balance = newBalance, transactionStatus = SUCCESS)
+    fun deposit(accountId: String, amount: BigDecimal): Transaction {
+        checkDepositTransaction(amount)
+        val newBalance = balanceService.getBalance(accountId).plus(amount)
+        val newTransaction = Transaction(accountId, amount, newBalance, now())
         return transactionClient.save(newTransaction)
     }
-
 
     fun checkOperations(accountId: String): List<Transaction> = transactionClient.findById(accountId)
 }

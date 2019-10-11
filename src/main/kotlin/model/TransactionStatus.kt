@@ -1,1 +1,0 @@
-package modelenum class TransactionStatus {    PENDING,    REJECTED,    ACCEPTED,    SUCCESS,    CANCELED}

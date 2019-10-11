@@ -2,6 +2,7 @@ package service
 
 import client.TransactionClient
 import com.nhaarman.mockitokotlin2.eq
+import exception.BalanceNotFoundException
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.extension.ExtendWith
@@ -43,7 +44,7 @@ internal class BalanceServiceTest {
             .thenReturn(getTransactionsById(accountId))
 
         assertThatThrownBy { balanceService.getBalance(accountId) }
-            .isExactlyInstanceOf(IllegalStateException::class.java)
+            .isExactlyInstanceOf(BalanceNotFoundException::class.java)
             .hasMessage("Unable to retrieve balance")
     }
 }

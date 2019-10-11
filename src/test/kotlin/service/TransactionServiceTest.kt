@@ -2,9 +2,9 @@ package service
 
 import client.TransactionClient
 import com.nhaarman.mockitokotlin2.eq
+import model.Transaction
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
@@ -12,7 +12,9 @@ import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito
 import org.mockito.junit.jupiter.MockitoExtension
-import utils.*
+import utils.getTransactionsById
+import java.math.BigDecimal
+import java.time.LocalDate.now
 
 @ExtendWith(MockitoExtension::class)
 internal class TransactionServiceTest {
@@ -42,27 +44,44 @@ internal class TransactionServiceTest {
         assertThat(transactionService.checkOperations(accountId)).hasSize(size)
     }
 
-    @Test
-    fun `deposit, should succeed`() {
-        val accountId = "FR3217569000403186528461V35"
-        Mockito.`when`(transactionClient.findById(eq(accountId)))
-            .thenReturn(getTransactionsById(accountId))
-        Mockito.`when`(transactionClient.save(eq(createAfterDepositTransaction())))
-            .thenReturn(createAfterDepositTransaction())
+    @ParameterizedTest
+    @CsvSource(
+        "FR3217569000403186528461V35, 500, 1000",
+        "FR3217569000403186528461V35, 5000, 5500"
+    )
+    fun `deposit, should succeed`(id: String, requestedAmount: BigDecimal, expectedBalance: BigDecimal) {
+        val transaction = Transaction(id, requestedAmount, expectedBalance, now())
+        Mockito.`when`(transactionClient.findById(eq(id)))
+            .thenReturn(getTransactionsById(id))
+        Mockito.`when`(transactionClient.save(eq(transaction)))
+            .thenReturn(transaction)
 
-        assertThat(transactionService.deposit(createDepositTransaction()))
-            .isEqualToComparingFieldByField(createAfterDepositTransaction())
+        val response = transactionService.deposit(id, requestedAmount)
+        assertThat(response).isNotNull
+        assertThat(response.accountId).isEqualTo(id)
+        assertThat(response.money).isEqualTo(requestedAmount)
+        assertThat(response.balance).isEqualTo(expectedBalance)
+        assertThat(response.requestedExecutionDate).isEqualTo(now())
     }
 
-    @Test
-    fun withdrawal() {
-        val accountId = "FR3217569000403186528461V35"
-        Mockito.`when`(transactionClient.findById(eq(accountId)))
-            .thenReturn(getTransactionsById(accountId))
-        Mockito.`when`(transactionClient.save(eq(createAfterWithdrawalTransaction())))
-            .thenReturn(createAfterWithdrawalTransaction())
+    @ParameterizedTest
+    @CsvSource(
+        "FR3217569000403186528461V35, -500, 0",
+        "FR3217569000403186528461V35, -100, 400",
+        "FR3217569000403186528461V35, -50, 450"
+    )
+    fun `withdrawal, should succeed`(id: String, requestedAmount: BigDecimal, expectedBalance: BigDecimal) {
+        val transaction = Transaction(id, requestedAmount, expectedBalance, now())
+        Mockito.`when`(transactionClient.findById(eq(id)))
+            .thenReturn(getTransactionsById(id))
+        Mockito.`when`(transactionClient.save(eq(transaction)))
+            .thenReturn(transaction)
 
-        assertThat(transactionService.withdraw(createWithdrawalTransaction()))
-            .isEqualToComparingFieldByField(createAfterWithdrawalTransaction())
+        val response = transactionService.withdraw(id, requestedAmount)
+        assertThat(response).isNotNull
+        assertThat(response.accountId).isEqualTo(id)
+        assertThat(response.money).isEqualTo(requestedAmount)
+        assertThat(response.balance).isEqualTo(expectedBalance)
+        assertThat(response.requestedExecutionDate).isEqualTo(now())
     }
 }
