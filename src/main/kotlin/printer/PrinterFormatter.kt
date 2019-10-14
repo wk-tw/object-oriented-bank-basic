@@ -54,5 +54,5 @@ private fun formatCreditorLine(transaction: Transaction): String {
     )
 }
 
-private fun formatLine(paddedDate: String, paddedCredit: String?, paddedDebit: String?, paddedBalance: String) =
+private fun formatLine(paddedDate: String, paddedCredit: String, paddedDebit: String, paddedBalance: String) =
     "||$paddedDate|$paddedCredit|$paddedDebit|$paddedBalance||"
