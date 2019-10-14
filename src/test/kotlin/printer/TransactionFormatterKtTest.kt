@@ -3,14 +3,12 @@ package printer
 import model.Transaction
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.CsvSource
 import service.AccountServiceTest
 import java.math.BigDecimal
 import java.time.temporal.ChronoUnit
 
 
-internal class PrinterFormatterKtTest {
+internal class TransactionFormatterKtTest {
     companion object {
         fun createFR6017569000704817168116U94() = listOf<Transaction>(
             Transaction(
@@ -34,17 +32,6 @@ internal class PrinterFormatterKtTest {
         )
     }
 
-    @ParameterizedTest
-    @CsvSource(
-        "|| 2019-10-01 00H00 |   2000   |          |   2000   ||, 0",
-        "|| 2019-10-03 00H00 |          |   -1000  |   1000   ||, 1",
-        "|| 2019-10-05 00H00 |          |   -1000  |     0    ||, 2"
-    )
-    fun `formatTransaction, should succeed`(expectedString: String, index: Int) {
-        assertThat(formatTransaction(createFR6017569000704817168116U94()[index]))
-            .isEqualTo(expectedString)
-    }
-
     @Test
     fun `formatTransactions, should succeed`() {
         assertThat(formatTransactions(createFR6017569000704817168116U94()))
@@ -56,5 +43,4 @@ internal class PrinterFormatterKtTest {
                 )
             )
     }
-
 }

@@ -2,6 +2,7 @@ package service
 
 import exception.NotEnoughFundsException
 import model.Transaction
+import printer.formatTransactions
 import repository.TransactionRepository
 import validator.checkDepositTransaction
 import validator.checkWithdrawalTransaction
@@ -15,7 +16,7 @@ import java.time.Instant.now
  * US 2: In order to retrieve some or all of my savings, as a bank client, I want to make a withdrawal from my account
  * @see [deposit]
  * US 3: In order to check my operations, as a bank client, I want to see the history (operation, date, amount, balance) of my operations
- * @see [checkOperations]
+ * @see [displayOperations]
  */
 class AccountService(
     private val transactionRepository: TransactionRepository,
@@ -44,5 +45,9 @@ class AccountService(
         }
     }
 
-    fun checkOperations(accountId: String): List<Transaction>? = transactionRepository.findByAccountId(accountId)
+    fun displayOperations(accountId: String) =
+        transactionRepository.findByAccountId(accountId)?.let {
+            printer.displayTransactions(it, ::formatTransactions, System.out::println)
+        }
+
 }

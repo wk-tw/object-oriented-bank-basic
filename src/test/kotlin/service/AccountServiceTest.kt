@@ -1,6 +1,7 @@
 package service
 
 import com.nhaarman.mockitokotlin2.eq
+import com.nhaarman.mockitokotlin2.verifyNoMoreInteractions
 import exception.NotEnoughFundsException
 import model.Transaction
 import org.assertj.core.api.Assertions
@@ -96,7 +97,8 @@ internal class AccountServiceTest {
     fun `checkOperations, should succeed`(accountId: String, size: Int) {
         Mockito.`when`(transactionRepository.findByAccountId(eq(accountId))).thenReturn(getTransactionsById(accountId))
 
-        assertThat(accountService.checkOperations(accountId)).hasSize(size)
+        assertThat(accountService.displayOperations(accountId)).hasSize(size)
+        verifyNoMoreInteractions(transactionRepository);
     }
 
     @ParameterizedTest
@@ -138,10 +140,19 @@ internal class AccountServiceTest {
         Mockito.`when`(transactionRepository.getBalance(eq(id))).thenReturn(initialBalance)
 
         val response = accountService.withdraw(id, requestedAmount)!!
-        assertThat(response.accountId).isEqualTo(id)
-        assertThat(response.amount).isEqualTo(requestedAmount)
-        assertThat(response.balance).isEqualTo(expectedBalance)
-        assertThat(response.date).isEqualTo(TODAY)
+        assertThat(response)
+            .extracting(
+                "date",
+                "accountId",
+                "amount",
+                "balance"
+            )
+            .containsExactly(
+                TODAY,
+                id,
+                requestedAmount,
+                expectedBalance
+            )
     }
 
     @ParameterizedTest
@@ -150,7 +161,11 @@ internal class AccountServiceTest {
         "FR3217569000403186528461V35, -1000, 500",
         "FR3217569000403186528461V35, -25630, 500"
     )
-    fun `withdrawal, should fail`(id: String, requestedAmount: BigDecimal, initialBalance: BigDecimal) {
+    fun `withdrawal, should fail when not enough funds`(
+        id: String,
+        requestedAmount: BigDecimal,
+        initialBalance: BigDecimal
+    ) {
         Mockito.`when`(transactionRepository.getBalance(eq(id))).thenReturn(initialBalance)
 
         Assertions.assertThatThrownBy { accountService.withdraw(id, requestedAmount) }
