@@ -1,30 +1,58 @@
 package printer
 
 import model.Transaction
+import printer.PrinterFormatter.Companion.BALANCE_MAX_FIELD_LENGTH
+import printer.PrinterFormatter.Companion.CREDIT_MAX_FIELD_LENGTH
+import printer.PrinterFormatter.Companion.DATE_MAX_FIELD_LENGTH
+import printer.PrinterFormatter.Companion.DEBIT_MAX_FIELD_LENGTH
+import utils.pad
 import java.math.BigDecimal.ZERO
-import java.time.Instant
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
 
-const val FIRSTLIGNE = "||  DATE  |  CREDIT  |  DEBIT  |  BALANCE  ||"
-
-const val PADDING_SIZE = 30
-
-fun formatTransactions(transactions: List<Transaction>) =
-    transactions.map { "|| ${it.date} | ${it.amount} | | ${it.balance}" }
-
-fun formatTransaction(t: Transaction) =
-    t.takeIf { it.amount > ZERO }
-        ?.let { "||${it.date.toDefault().withPadding()}|${it.amount.withPadding()}|${"".withPadding()}|${it.balance.withPadding()}||" }
-        ?: "||${t.date.toDefault().withPadding()}|${"".withPadding()}|${t.amount.withPadding()}|${t.balance.withPadding()}||"
-
-private fun Any.withPadding() : String {
-    return this.toString()
-        .padStart(PADDING_SIZE - this.toString().length)
-        .padEnd(PADDING_SIZE - this.toString().length)
+class PrinterFormatter {
+    companion object {
+        const val DATE_MAX_FIELD_LENGTH = 18
+        const val CREDIT_MAX_FIELD_LENGTH = 10
+        const val DEBIT_MAX_FIELD_LENGTH = 10
+        const val BALANCE_MAX_FIELD_LENGTH = 10
+    }
 }
 
-fun Instant.toDefault(): String = DateTimeFormatter
-    .ofPattern("YYYY-MM-dd HH'H'mm")
-    .withZone(ZoneOffset.UTC)
-    .format(this)
+fun formatHeader(date: String, credit: String, debit: String, balance: String) =
+    formatLine(
+        date.pad(DATE_MAX_FIELD_LENGTH),
+        credit.pad(CREDIT_MAX_FIELD_LENGTH),
+        debit.pad(DEBIT_MAX_FIELD_LENGTH),
+        balance.pad(BALANCE_MAX_FIELD_LENGTH)
+    )
+
+fun formatTransactions(transactions: List<Transaction>): List<String> =
+    transactions
+        .sortedBy { it.date }
+        .map { formatTransaction(it) }
+
+fun formatTransaction(transaction: Transaction) =
+    transaction
+        .takeIf { it.amount > ZERO }
+        ?.let { formatCreditorLine(transaction) }
+        ?: formatDebtorLine(transaction)
+
+private fun formatDebtorLine(transaction: Transaction): String {
+    return formatLine(
+        transaction.date.pad(DATE_MAX_FIELD_LENGTH),
+        "".pad(CREDIT_MAX_FIELD_LENGTH),
+        transaction.amount.pad(DEBIT_MAX_FIELD_LENGTH),
+        transaction.balance.pad(BALANCE_MAX_FIELD_LENGTH)
+    )
+}
+
+private fun formatCreditorLine(transaction: Transaction): String {
+    return formatLine(
+        transaction.date.pad(DATE_MAX_FIELD_LENGTH),
+        transaction.amount.pad(CREDIT_MAX_FIELD_LENGTH),
+        "".pad(DEBIT_MAX_FIELD_LENGTH),
+        transaction.balance.pad(BALANCE_MAX_FIELD_LENGTH)
+    )
+}
+
+private fun formatLine(paddedDate: String, paddedCredit: String?, paddedDebit: String?, paddedBalance: String) =
+    "||$paddedDate|$paddedCredit|$paddedDebit|$paddedBalance||"

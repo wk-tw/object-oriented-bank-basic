@@ -41,12 +41,6 @@ internal class AccountServiceTest {
             ),
             Transaction(
                 accountId = "FR3217569000403186528461V35",
-                amount = BigDecimal(-3000),
-                balance = BigDecimal(2000),
-                date = TODAY.minus(9, DAYS)
-            ),
-            Transaction(
-                accountId = "FR3217569000403186528461V35",
                 amount = BigDecimal(-500),
                 balance = BigDecimal(1500),
                 date = TODAY.minus(8, DAYS)
@@ -77,12 +71,6 @@ internal class AccountServiceTest {
                 amount = BigDecimal(-1000),
                 balance = BigDecimal(0),
                 date = TODAY.minus(6, DAYS)
-            ),
-            Transaction(
-                accountId = "FR6017569000704817168116U94",
-                amount = BigDecimal(-1000),
-                balance = BigDecimal(0),
-                date = TODAY
             )
         )
 
@@ -101,8 +89,8 @@ internal class AccountServiceTest {
 
     @ParameterizedTest
     @CsvSource(
-        "FR3217569000403186528461V35, 4",
-        "FR6017569000704817168116U94, 4",
+        "FR3217569000403186528461V35, 3",
+        "FR6017569000704817168116U94, 3",
         "FR4930003000302945844589B40, 0"
     )
     fun `checkOperations, should succeed`(accountId: String, size: Int) {
