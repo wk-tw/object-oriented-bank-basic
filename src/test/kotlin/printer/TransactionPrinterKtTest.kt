@@ -1,8 +1,12 @@
 package printer
 
+import com.nhaarman.mockitokotlin2.any
+import com.nhaarman.mockitokotlin2.mock
+import com.nhaarman.mockitokotlin2.times
+import com.nhaarman.mockitokotlin2.verify
 import model.Transaction
-import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.mockito.Mockito
 import java.math.BigDecimal
 import java.time.Instant
 
@@ -43,15 +47,13 @@ internal class TransactionPrinterKtTest {
     }
 
     @Test
-    fun printStatement() {
-        val printStream = mutableListOf<String>()
-        fun printer(str: String) {
-            printStream.add(str)
-        }
-
-        fun formatter(transactions: List<Transaction>) =
-            transactions.map(Transaction::amount).map(BigDecimal::toPlainString)
-        transactionsPrinter(createTransactions(), ::formatter, ::printer)
-        assertThat(formatter(createTransactions())).isEqualTo(printStream)
+    fun `transactionsPrinter, should succeed`() {
+        val transactions = createTransactions()
+        val formatter = mock<TransactionsFormatter>()
+        val printer = mock<Printer>()
+        Mockito.`when`(formatter.invoke(transactions)).thenReturn(transactions.map { it.balance.toPlainString() })
+        transactionsPrinter(createTransactions(), formatter, printer)
+        verify(formatter, times(1)).invoke(any())
+        verify(printer, times(transactions.size)).invoke(any())
     }
 }
