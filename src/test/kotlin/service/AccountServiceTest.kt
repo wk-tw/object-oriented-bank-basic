@@ -14,6 +14,8 @@ import org.mockito.Mock
 import org.mockito.Mockito
 import org.mockito.junit.jupiter.MockitoExtension
 import repository.TransactionRepository
+import java.io.ByteArrayOutputStream
+import java.io.PrintStream
 import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant
@@ -38,19 +40,19 @@ internal class AccountServiceTest {
                 accountId = "FR3217569000403186528461V35",
                 amount = BigDecimal(2000),
                 balance = BigDecimal(2000),
-                date = TODAY.minus(10, DAYS)
+                executionDate = TODAY.minus(10, DAYS)
             ),
             Transaction(
                 accountId = "FR3217569000403186528461V35",
                 amount = BigDecimal(-500),
                 balance = BigDecimal(1500),
-                date = TODAY.minus(8, DAYS)
+                executionDate = TODAY.minus(8, DAYS)
             ),
             Transaction(
                 accountId = "FR3217569000403186528461V35",
                 amount = BigDecimal(-1000),
                 balance = BigDecimal(500),
-                date = TODAY.minus(3, DAYS)
+                executionDate = TODAY.minus(3, DAYS)
             )
         )
 
@@ -59,19 +61,19 @@ internal class AccountServiceTest {
                 accountId = "FR6017569000704817168116U94",
                 amount = BigDecimal(2000),
                 balance = BigDecimal(2000),
-                date = TODAY.minus(10, DAYS)
+                executionDate = TODAY.minus(10, DAYS)
             ),
             Transaction(
                 accountId = "FR6017569000704817168116U94",
                 amount = BigDecimal(-1000),
                 balance = BigDecimal(1000),
-                date = TODAY.minus(8, DAYS)
+                executionDate = TODAY.minus(8, DAYS)
             ),
             Transaction(
                 accountId = "FR6017569000704817168116U94",
                 amount = BigDecimal(-1000),
                 balance = BigDecimal(0),
-                date = TODAY.minus(6, DAYS)
+                executionDate = TODAY.minus(6, DAYS)
             )
         )
 
@@ -90,21 +92,32 @@ internal class AccountServiceTest {
 
     @ParameterizedTest
     @CsvSource(
-        "FR3217569000403186528461V35, 3",
-        "FR6017569000704817168116U94, 3",
-        "FR4930003000302945844589B40, 0"
+        "FR3217569000403186528461V35, 3"
     )
-    fun `checkOperations, should succeed`(accountId: String, size: Int) {
+    fun `displayOperations, should succeed`(accountId: String, size: Int) {
+        val os = ByteArrayOutputStream()
+        val ps = PrintStream(os)
+        System.setOut(ps)
+
         Mockito.`when`(transactionRepository.findByAccountId(eq(accountId))).thenReturn(getTransactionsById(accountId))
 
-        assertThat(accountService.displayOperations(accountId)).hasSize(size)
-        verifyNoMoreInteractions(transactionRepository);
+        accountService.displayOperations(accountId)
+        verifyNoMoreInteractions(transactionRepository)
+        assertThat(os.toString()).isEqualTo(
+            "||                 DATE |     CREDIT |      DEBIT |    BALANCE ||${System.lineSeparator()}" +
+                    "|| 2019-10-01T00:00:00Z |   2 000,00 |            |   2 000,00 ||${System.lineSeparator()}" +
+                    "|| 2019-10-03T00:00:00Z |            |    -500,00 |   1 500,00 ||${System.lineSeparator()}" +
+                    "|| 2019-10-08T00:00:00Z |            |  -1 000,00 |     500,00 ||${System.lineSeparator()}"
+        )
+        val originalOut = System.out
+        System.setOut(originalOut)
     }
 
     @ParameterizedTest
     @CsvSource(
         "FR3217569000403186528461V35, 500, 500, 1000",
-        "FR3217569000403186528461V35, 5000, 500, 5500"
+        "FR3217569000403186528461V35, 5000, 500, 5500",
+        "FR6017569000704817168116U94, 5000, 0, 5000"
     )
     fun `deposit, should succeed`(
         id: String,
@@ -117,10 +130,21 @@ internal class AccountServiceTest {
         Mockito.`when`(transactionRepository.getBalance(eq(id))).thenReturn(initialBalance)
 
         val response = accountService.deposit(id, requestedAmount)!!
-        assertThat(response.accountId).isEqualTo(id)
-        assertThat(response.amount).isEqualTo(requestedAmount)
-        assertThat(response.balance).isEqualTo(expectedBalance)
-        assertThat(response.date).isEqualTo(TODAY)
+        verifyNoMoreInteractions(transactionRepository)
+        assertThat(response).isEqualToComparingFieldByField(transaction)
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "BE30131851926511, 50000",
+        "BE30131851926511, 1000",
+        "BE30131851926511, 25630"
+    )
+    fun `deposit, account not found, should return null`(id: String, requestedAmount: BigDecimal) {
+        Mockito.`when`(transactionRepository.getBalance(eq(id))).thenReturn(null)
+
+        assertThat(accountService.deposit(id, requestedAmount)).isNull()
+        verifyNoMoreInteractions(transactionRepository)
     }
 
     @ParameterizedTest
@@ -140,19 +164,8 @@ internal class AccountServiceTest {
         Mockito.`when`(transactionRepository.getBalance(eq(id))).thenReturn(initialBalance)
 
         val response = accountService.withdraw(id, requestedAmount)!!
-        assertThat(response)
-            .extracting(
-                "date",
-                "accountId",
-                "amount",
-                "balance"
-            )
-            .containsExactly(
-                TODAY,
-                id,
-                requestedAmount,
-                expectedBalance
-            )
+        verifyNoMoreInteractions(transactionRepository)
+        assertThat(response).isEqualToComparingFieldByField(transaction)
     }
 
     @ParameterizedTest
@@ -161,7 +174,7 @@ internal class AccountServiceTest {
         "FR3217569000403186528461V35, -1000, 500",
         "FR3217569000403186528461V35, -25630, 500"
     )
-    fun `withdrawal, should fail when not enough funds`(
+    fun `withdrawal, not enough funds, should fail`(
         id: String,
         requestedAmount: BigDecimal,
         initialBalance: BigDecimal
@@ -171,5 +184,19 @@ internal class AccountServiceTest {
         Assertions.assertThatThrownBy { accountService.withdraw(id, requestedAmount) }
             .isExactlyInstanceOf(NotEnoughFundsException::class.java)
             .hasMessage("Not enough funds.")
+        verifyNoMoreInteractions(transactionRepository)
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "BE30131851926511, -50000",
+        "BE30131851926511, -1000",
+        "BE30131851926511, -25630"
+    )
+    fun `withdrawal, account not found, should return null`(id: String, requestedAmount: BigDecimal) {
+        Mockito.`when`(transactionRepository.getBalance(eq(id))).thenReturn(null)
+
+        assertThat(accountService.withdraw(id, requestedAmount)).isNull()
+        verifyNoMoreInteractions(transactionRepository)
     }
 }

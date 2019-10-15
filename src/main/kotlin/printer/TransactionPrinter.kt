@@ -5,7 +5,7 @@ import model.Transaction
 typealias TransactionsFormatter = (List<Transaction>) -> List<String>
 typealias Printer = (String) -> Unit
 
-fun displayTransactions(
+fun transactionsPrinter(
     transactions: List<Transaction>,
     formatter: TransactionsFormatter,
     printer: Printer

@@ -47,7 +47,7 @@ class AccountService(
 
     fun displayOperations(accountId: String) =
         transactionRepository.findByAccountId(accountId)?.let {
-            printer.displayTransactions(it, ::formatTransactions, System.out::println)
+            printer.transactionsPrinter(it, ::formatTransactions, System.out::println)
         }
 
 }
