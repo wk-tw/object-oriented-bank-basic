@@ -22,6 +22,7 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit.DAYS
 
+
 @ExtendWith(MockitoExtension::class)
 internal class AccountServiceTest {
     companion object {
@@ -88,21 +89,6 @@ internal class AccountServiceTest {
     @BeforeEach
     fun setup() {
         accountService = AccountService(transactionRepository, Clock.fixed(TODAY, ZoneOffset.UTC))
-    }
-
-    @ParameterizedTest
-    @ValueSource(
-        strings = [
-            "FR3217569000403186528461V35",
-            "FR6017569000704817168116U94"
-        ]
-    )
-    fun `displayOperations, should succeed`(accountId: String) {
-        Mockito.`when`(transactionRepository.findByAccountId(eq(accountId))).thenReturn(getTransactionsById(accountId))
-        val printFunc = mock<(List<Transaction>) -> Unit>()
-        accountService.displayOperations(accountId, printFunc)
-        verify(printFunc, times(1)).invoke(any())
-        verifyNoMoreInteractions(transactionRepository)
     }
 
     @ParameterizedTest
@@ -239,4 +225,51 @@ internal class AccountServiceTest {
             .hasMessageContaining("Unable to add")
         verifyNoMoreInteractions(transactionRepository)
     }
+
+    @ParameterizedTest
+    @ValueSource(
+        strings = [
+            "FR3217569000403186528461V35",
+            "FR6017569000704817168116U94"
+        ]
+    )
+    fun `displayOperations, should succeed`(accountId: String) {
+        Mockito.`when`(transactionRepository.findByAccountId(eq(accountId))).thenReturn(getTransactionsById(accountId))
+        val printFunc = mock<(List<Transaction>) -> Unit>()
+        accountService.displayOperations(accountId, printFunc)
+        verify(printFunc, times(1)).invoke(any())
+        verifyNoMoreInteractions(transactionRepository)
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+        strings = [
+            "FR3217569000403186528461V35",
+            "FR6017569000704817168116U94"
+        ]
+    )
+    fun `displayOperations, emptyList, should succeed`(accountId: String) {
+        Mockito.`when`(transactionRepository.findByAccountId(eq(accountId))).thenReturn(emptyList())
+        val printFunc = mock<(List<Transaction>) -> Unit>()
+        accountService.displayOperations(accountId, printFunc)
+        verify(printFunc, times(1)).invoke(any())
+        verifyNoMoreInteractions(transactionRepository)
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+        strings = [
+            "FR3217569000403186528461V35",
+            "FR6017569000704817168116U94"
+        ]
+    )
+    fun `displayOperations, null, should throw`(accountId: String) {
+        Mockito.`when`(transactionRepository.findByAccountId(eq(accountId))).thenReturn(null)
+        val printFunc = mock<(List<Transaction>) -> Unit>()
+        Assertions.assertThatThrownBy { accountService.displayOperations(accountId, printFunc) }
+            .isExactlyInstanceOf(AccountNotFoundException::class.java)
+            .hasMessageContaining("Can not find transactions with accountId")
+        verifyNoMoreInteractions(transactionRepository)
+    }
+
 }

@@ -24,6 +24,17 @@ class AccountService(
     private val clock: Clock? = Clock.systemUTC()
 ) {
 
+    fun deposit(accountId: String, amount: BigDecimal): Transaction {
+        checkDepositAmount(amount)
+        val actualBalance = transactionRepository.getBalance(accountId)
+            ?: throw AccountNotFoundException("Can not find transactions with accountId $accountId.")
+        val newBalance = actualBalance.plus(amount)
+        val newTransaction = Transaction(accountId, amount, newBalance, now(clock))
+
+        return transactionRepository.add(newTransaction)
+            ?: throw UnableToAddIntoDatabaseException("Unable to add $newTransaction into database.")
+    }
+
     fun withdraw(accountId: String, amount: BigDecimal): Transaction? {
         checkWithdrawalAmount(amount)
         val actualBalance = transactionRepository.getBalance(accountId)
@@ -37,17 +48,6 @@ class AccountService(
     }
 
     private fun isEnoughFunds(amount: BigDecimal, balance: BigDecimal) = amount.abs() <= balance
-
-    fun deposit(accountId: String, amount: BigDecimal): Transaction {
-        checkDepositAmount(amount)
-        val actualBalance = transactionRepository.getBalance(accountId)
-            ?: throw AccountNotFoundException("Can not find transactions with accountId $accountId.")
-        val newBalance = actualBalance.plus(amount)
-        val newTransaction = Transaction(accountId, amount, newBalance, now(clock))
-
-        return transactionRepository.add(newTransaction)
-            ?: throw UnableToAddIntoDatabaseException("Unable to add $newTransaction into database.")
-    }
 
     fun displayOperations(accountId: String, printFunc: (List<Transaction>) -> Unit) =
         transactionRepository.findByAccountId(accountId)
