@@ -1,8 +1,9 @@
 package service
 
-import com.nhaarman.mockitokotlin2.eq
-import com.nhaarman.mockitokotlin2.verifyNoMoreInteractions
+import com.nhaarman.mockitokotlin2.*
+import exception.AccountNotFoundException
 import exception.NotEnoughFundsException
+import exception.UnableToAddIntoDatabaseException
 import model.Transaction
 import org.assertj.core.api.Assertions
 import org.assertj.core.api.Assertions.assertThat
@@ -10,12 +11,11 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
+import org.junit.jupiter.params.provider.ValueSource
 import org.mockito.Mock
 import org.mockito.Mockito
 import org.mockito.junit.jupiter.MockitoExtension
 import repository.TransactionRepository
-import java.io.ByteArrayOutputStream
-import java.io.PrintStream
 import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant
@@ -91,26 +91,18 @@ internal class AccountServiceTest {
     }
 
     @ParameterizedTest
-    @CsvSource(
-        "FR3217569000403186528461V35, 3"
+    @ValueSource(
+        strings = [
+            "FR3217569000403186528461V35",
+            "FR6017569000704817168116U94"
+        ]
     )
-    fun `displayOperations, should succeed`(accountId: String, size: Int) {
-        val os = ByteArrayOutputStream()
-        val ps = PrintStream(os)
-        System.setOut(ps)
-
+    fun `displayOperations, should succeed`(accountId: String) {
         Mockito.`when`(transactionRepository.findByAccountId(eq(accountId))).thenReturn(getTransactionsById(accountId))
-
-        accountService.displayOperations(accountId)
+        val printFunc = mock<(List<Transaction>) -> Unit>()
+        accountService.displayOperations(accountId, printFunc)
+        verify(printFunc, times(1)).invoke(any())
         verifyNoMoreInteractions(transactionRepository)
-        assertThat(os.toString()).isEqualTo(
-            "||                 DATE |     CREDIT |      DEBIT |    BALANCE ||${System.lineSeparator()}" +
-                    "|| 2019-10-01T00:00:00Z |   2 000,00 |            |   2 000,00 ||${System.lineSeparator()}" +
-                    "|| 2019-10-03T00:00:00Z |            |    -500,00 |   1 500,00 ||${System.lineSeparator()}" +
-                    "|| 2019-10-08T00:00:00Z |            |  -1 000,00 |     500,00 ||${System.lineSeparator()}"
-        )
-        val originalOut = System.out
-        System.setOut(originalOut)
     }
 
     @ParameterizedTest
@@ -129,7 +121,7 @@ internal class AccountServiceTest {
         Mockito.`when`(transactionRepository.add(eq(transaction))).thenReturn(transaction)
         Mockito.`when`(transactionRepository.getBalance(eq(id))).thenReturn(initialBalance)
 
-        val response = accountService.deposit(id, requestedAmount)!!
+        val response = accountService.deposit(id, requestedAmount)
         verifyNoMoreInteractions(transactionRepository)
         assertThat(response).isEqualToComparingFieldByField(transaction)
     }
@@ -140,10 +132,34 @@ internal class AccountServiceTest {
         "BE30131851926511, 1000",
         "BE30131851926511, 25630"
     )
-    fun `deposit, account not found, should return null`(id: String, requestedAmount: BigDecimal) {
+    fun `deposit, account not found, should throw`(id: String, requestedAmount: BigDecimal) {
         Mockito.`when`(transactionRepository.getBalance(eq(id))).thenReturn(null)
 
-        assertThat(accountService.deposit(id, requestedAmount)).isNull()
+        Assertions.assertThatThrownBy { accountService.deposit(id, requestedAmount) }
+            .isExactlyInstanceOf(AccountNotFoundException::class.java)
+            .hasMessageContaining("Can not find transactions with accountId")
+        verifyNoMoreInteractions(transactionRepository)
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "FR3217569000403186528461V35, 500, 500, 1000",
+        "FR3217569000403186528461V35, 5000, 500, 5500",
+        "FR6017569000704817168116U94, 5000, 0, 5000"
+    )
+    fun `deposit, unable to add transaction, should throw`(
+        id: String,
+        requestedAmount: BigDecimal,
+        initialBalance: BigDecimal,
+        newBalance: BigDecimal
+    ) {
+        val transaction = Transaction(id, requestedAmount, newBalance, TODAY)
+        Mockito.`when`(transactionRepository.getBalance(eq(id))).thenReturn(initialBalance)
+        Mockito.`when`(transactionRepository.add(transaction)).thenReturn(null)
+
+        Assertions.assertThatThrownBy { accountService.deposit(id, requestedAmount) }
+            .isExactlyInstanceOf(UnableToAddIntoDatabaseException::class.java)
+            .hasMessageContaining("Unable to add")
         verifyNoMoreInteractions(transactionRepository)
     }
 
@@ -153,7 +169,7 @@ internal class AccountServiceTest {
         "FR3217569000403186528461V35, -100, 500, 400",
         "FR3217569000403186528461V35, -50, 500, 450"
     )
-    fun `withdrawal, should succeed`(
+    fun `withdraw, should succeed`(
         id: String,
         requestedAmount: BigDecimal,
         initialBalance: BigDecimal,
@@ -174,7 +190,7 @@ internal class AccountServiceTest {
         "FR3217569000403186528461V35, -1000, 500",
         "FR3217569000403186528461V35, -25630, 500"
     )
-    fun `withdrawal, not enough funds, should fail`(
+    fun `withdraw, not enough funds, should fail`(
         id: String,
         requestedAmount: BigDecimal,
         initialBalance: BigDecimal
@@ -193,10 +209,34 @@ internal class AccountServiceTest {
         "BE30131851926511, -1000",
         "BE30131851926511, -25630"
     )
-    fun `withdrawal, account not found, should return null`(id: String, requestedAmount: BigDecimal) {
+    fun `withdraw, account not found, should throw`(id: String, requestedAmount: BigDecimal) {
         Mockito.`when`(transactionRepository.getBalance(eq(id))).thenReturn(null)
 
-        assertThat(accountService.withdraw(id, requestedAmount)).isNull()
+        Assertions.assertThatThrownBy { accountService.withdraw(id, requestedAmount) }
+            .isExactlyInstanceOf(AccountNotFoundException::class.java)
+            .hasMessageContaining("Can not find transactions with accountId")
+        verifyNoMoreInteractions(transactionRepository)
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "FR3217569000403186528461V35, -500, 500, 0",
+        "FR3217569000403186528461V35, -100, 500, 400",
+        "FR3217569000403186528461V35, -50, 500, 450"
+    )
+    fun `withdraw, unable to add transaction, should throw`(
+        id: String,
+        requestedAmount: BigDecimal,
+        initialBalance: BigDecimal,
+        newBalance: BigDecimal
+    ) {
+        val transaction = Transaction(id, requestedAmount, newBalance, TODAY)
+        Mockito.`when`(transactionRepository.getBalance(eq(id))).thenReturn(initialBalance)
+        Mockito.`when`(transactionRepository.add(transaction)).thenReturn(null)
+
+        Assertions.assertThatThrownBy { accountService.withdraw(id, requestedAmount) }
+            .isExactlyInstanceOf(UnableToAddIntoDatabaseException::class.java)
+            .hasMessageContaining("Unable to add")
         verifyNoMoreInteractions(transactionRepository)
     }
 }

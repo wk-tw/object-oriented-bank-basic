@@ -19,7 +19,7 @@ internal class TransactionValidatorKtTest {
     )
     fun `checkWithdrawalTransaction, should succeed`(double: Double) {
         val amount = BigDecimal.valueOf(double)
-        assertDoesNotThrow { checkWithdrawalTransaction(amount) }
+        assertDoesNotThrow { checkWithdrawalAmount(amount) }
     }
 
     @ParameterizedTest
@@ -32,7 +32,7 @@ internal class TransactionValidatorKtTest {
     )
     fun `checkWithdrawalTransaction, invalid data,should throw`(double: Double) {
         val amount = BigDecimal.valueOf(double)
-        Assertions.assertThatThrownBy { checkWithdrawalTransaction(amount) }
+        Assertions.assertThatThrownBy { checkWithdrawalAmount(amount) }
             .isExactlyInstanceOf(BadRequestedAmountException::class.java)
     }
 
@@ -46,7 +46,7 @@ internal class TransactionValidatorKtTest {
     )
     fun `checkDepositTransaction, should succeed`(double: Double) {
         val amount = BigDecimal.valueOf(double)
-        assertDoesNotThrow { checkDepositTransaction(amount) }
+        assertDoesNotThrow { checkDepositAmount(amount) }
     }
 
     @ParameterizedTest
@@ -59,7 +59,7 @@ internal class TransactionValidatorKtTest {
     )
     fun `checkDepositTransaction, invalid data,should throw`(double: Double) {
         val amount = BigDecimal.valueOf(double)
-        Assertions.assertThatThrownBy { checkDepositTransaction(amount) }
+        Assertions.assertThatThrownBy { checkDepositAmount(amount) }
             .isExactlyInstanceOf(BadRequestedAmountException::class.java)
     }
 }

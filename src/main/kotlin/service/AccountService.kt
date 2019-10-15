@@ -1,11 +1,12 @@
 package service
 
+import exception.AccountNotFoundException
 import exception.NotEnoughFundsException
+import exception.UnableToAddIntoDatabaseException
 import model.Transaction
-import printer.formatTransactions
 import repository.TransactionRepository
-import validator.checkDepositTransaction
-import validator.checkWithdrawalTransaction
+import validator.checkDepositAmount
+import validator.checkWithdrawalAmount
 import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant.now
@@ -24,30 +25,34 @@ class AccountService(
 ) {
 
     fun withdraw(accountId: String, amount: BigDecimal): Transaction? {
-        checkWithdrawalTransaction(amount)
-        return transactionRepository.getBalance(accountId)?.let { actualBalance ->
-            if (isEnoughFunds(amount, actualBalance)) {
-                val newBalance = actualBalance.plus(amount)
-                val newTransaction = Transaction(accountId, amount, newBalance, now(clock))
-                transactionRepository.add(newTransaction)
-            } else throw NotEnoughFundsException("Not enough funds.")
-        }
+        checkWithdrawalAmount(amount)
+        val actualBalance = transactionRepository.getBalance(accountId)
+            ?: throw AccountNotFoundException("Can not find transactions with accountId $accountId.")
+        if (!isEnoughFunds(amount, actualBalance)) throw NotEnoughFundsException("Not enough funds.")
+        val newBalance = actualBalance.plus(amount)
+        val newTransaction = Transaction(accountId, amount, newBalance, now(clock))
+
+        return transactionRepository.add(newTransaction)
+            ?: throw UnableToAddIntoDatabaseException("Unable to add $newTransaction into database.")
     }
 
-    private fun isEnoughFunds(requested: BigDecimal, actual: BigDecimal) = requested.abs() <= actual
+    private fun isEnoughFunds(amount: BigDecimal, balance: BigDecimal) = amount.abs() <= balance
 
-    fun deposit(accountId: String, amount: BigDecimal): Transaction? {
-        checkDepositTransaction(amount)
-        return transactionRepository.getBalance(accountId)?.let { actualBalance ->
-            val newBalance = actualBalance.plus(amount)
-            val newTransaction = Transaction(accountId, amount, newBalance, now(clock))
-            transactionRepository.add(newTransaction)
-        }
+    fun deposit(accountId: String, amount: BigDecimal): Transaction {
+        checkDepositAmount(amount)
+        val actualBalance = transactionRepository.getBalance(accountId)
+            ?: throw AccountNotFoundException("Can not find transactions with accountId $accountId.")
+        val newBalance = actualBalance.plus(amount)
+        val newTransaction = Transaction(accountId, amount, newBalance, now(clock))
+
+        return transactionRepository.add(newTransaction)
+            ?: throw UnableToAddIntoDatabaseException("Unable to add $newTransaction into database.")
     }
 
-    fun displayOperations(accountId: String) =
-        transactionRepository.findByAccountId(accountId)?.let {
-            printer.transactionsPrinter(it, ::formatTransactions, System.out::println)
-        }
-
+    fun displayOperations(accountId: String, printFunc: (List<Transaction>) -> Unit) =
+        transactionRepository.findByAccountId(accountId)
+            ?.let {
+                printFunc.invoke(it)
+            }
+            ?: throw AccountNotFoundException("Can not find transactions with accountId $accountId.")
 }
