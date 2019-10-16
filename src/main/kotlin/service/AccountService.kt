@@ -5,6 +5,7 @@ import exception.NotEnoughFundsException
 import exception.UnableToAddIntoDatabaseException
 import model.Transaction
 import repository.TransactionRepository
+import utils.switchIfNull
 import validator.checkDepositAmount
 import validator.checkWithdrawalAmount
 import java.math.BigDecimal
@@ -26,28 +27,28 @@ class AccountService(
 
     fun deposit(accountId: String, amount: BigDecimal): Transaction {
         checkDepositAmount(amount)
-        val actualBalance = transactionRepository.getBalance(accountId)
-            ?: throw AccountNotFoundException("Can not find transactions with accountId $accountId.")
-        val newBalance = actualBalance.plus(amount)
-        val newTransaction = Transaction(accountId, amount, newBalance, now(clock))
-
-        return transactionRepository.add(newTransaction)
-            ?: throw UnableToAddIntoDatabaseException("Unable to add $newTransaction into database.")
+        return transactionRepository.getBalance(accountId)
+            .switchIfNull { throw AccountNotFoundException("Can not find transactions with accountId $accountId.") }
+            .let { addNewTransaction(it, amount, accountId) }
     }
 
-    fun withdraw(accountId: String, amount: BigDecimal): Transaction? {
+    fun withdraw(accountId: String, amount: BigDecimal): Transaction {
         checkWithdrawalAmount(amount)
-        val actualBalance = transactionRepository.getBalance(accountId)
-            ?: throw AccountNotFoundException("Can not find transactions with accountId $accountId.")
-        if (!isEnoughFunds(amount, actualBalance)) throw NotEnoughFundsException("Not enough funds.")
-        val newBalance = actualBalance.plus(amount)
-        val newTransaction = Transaction(accountId, amount, newBalance, now(clock))
-
-        return transactionRepository.add(newTransaction)
-            ?: throw UnableToAddIntoDatabaseException("Unable to add $newTransaction into database.")
+        return transactionRepository.getBalance(accountId)
+            .switchIfNull { throw AccountNotFoundException("Can not find transactions with accountId $accountId.") }
+            .takeIf { isEnoughFunds(amount, it) }
+            .switchIfNull { throw NotEnoughFundsException("Not enough funds.") }
+            .let { addNewTransaction(it, amount, accountId) }
     }
 
     private fun isEnoughFunds(amount: BigDecimal, balance: BigDecimal) = amount.abs() <= balance
+
+    private fun addNewTransaction(balance: BigDecimal, amount: BigDecimal, accountId: String): Transaction {
+        val newBalance = balance.plus(amount)
+        val newTransaction = Transaction(accountId, amount, newBalance, now(clock))
+        return transactionRepository.add(newTransaction)
+            ?: throw UnableToAddIntoDatabaseException("Unable to add $newTransaction into database.")
+    }
 
     fun displayOperations(accountId: String, printFunc: (List<Transaction>) -> Unit) =
         transactionRepository.findByAccountId(accountId)
