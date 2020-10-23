@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import service.AccountServiceTest
 import java.math.BigDecimal
 import java.time.temporal.ChronoUnit
+import java.util.*
 
 
 internal class TransactionFormatterKtTest {
@@ -34,6 +35,7 @@ internal class TransactionFormatterKtTest {
 
     @Test
     fun `formatTransactions, should succeed`() {
+        Locale.setDefault(Locale.FRANCE)
         assertThat(formatTransactions(createFR6017569000704817168116U94()))
             .isEqualTo(
                 listOf(
